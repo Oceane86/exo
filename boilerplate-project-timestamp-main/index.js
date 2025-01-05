@@ -1,52 +1,63 @@
-// Importation des modules
+// index.js
+// where your node app starts
+
+// init project
 var express = require('express');
 var app = express();
 
-// Importation de CORS (pour les tests externes)
+// enable CORS (https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)
+// so that your API is remotely testable by FCC 
 var cors = require('cors');
-app.use(cors({ optionsSuccessStatus: 200 }));
+app.use(cors({ optionsSuccessStatus: 200 }));  // some legacy browsers choke on 204
 
-// Servir les fichiers statiques (comme le fichier CSS)
+// http://expressjs.com/en/starter/static-files.html
 app.use(express.static('public'));
 
-// Servir la page HTML principale (index.html)
+// http://expressjs.com/en/starter/basic-routing.html
 app.get("/", function (req, res) {
   res.sendFile(__dirname + '/views/index.html');
 });
 
-// API pour gérer les requêtes de timestamp
+
+// your first API endpoint... 
 app.get("/api/:date?", function (req, res) {
-  const dateParam = req.params.date;
-  let date;
+  let date = req.params.date;
 
-  // Si un paramètre de date est fourni
-  if (dateParam) {
-    // Si c'est un timestamp Unix (numérique), le traiter comme un nombre
-    if (!isNaN(dateParam)) {
-      date = new Date(parseInt(dateParam)); // Créer une date à partir du timestamp
-    } else {
-      // Sinon, essayer de convertir la chaîne de date
-      date = new Date(dateParam);
-    }
+  let unixDate;
+  let dateObj;
+  let utcDate;
 
-    // Vérifier si la date est invalide
-    if (isNaN(date.getTime())) {
-      return res.json({ error: "Invalid Date" });
-    }
-  } else {
-    // Si aucune date n'est fournie, utiliser la date actuelle
-    date = new Date();
+  // Test whether the input date is a number
+  let isUnix = /^\d+$/.test(date);
+
+  // If no date specified, use the current date
+  if (!date) {
+    dateObj = new Date();
+  }
+  // If the date is a Unix Timestamp
+  else if (date && isUnix) {
+    unixDate = parseInt(date);
+    dateObj = new Date(unixDate);
+  }
+  // If the date is not a unix time stamp
+  else if (date && !isUnix) {
+    dateObj = new Date(date);
   }
 
-  // Récupérer le timestamp Unix et la date UTC
-  const unixTimestamp = date.getTime();
-  const utcDate = date.toUTCString();
+  if (dateObj.toString() === "Invalid Date") {
+    res.json({ error: "Invalid Date" });
+    return;
+  }
 
-  // Retourner la réponse JSON avec les clés unix et utc
-  return res.json({ unix: unixTimestamp, utc: utcDate });
+  unixDate = dateObj.getTime();
+  utcDate = dateObj.toUTCString();
+
+  res.json({ unix: unixDate, utc: utcDate });
 });
 
-// Lancer l'application sur le port spécifié ou sur le port 3000 par défaut
-var listener = app.listen(process.env.PORT || 3000, function () {
+
+
+// listen for requests :)
+var listener = app.listen(process.env.PORT, function () {
   console.log('Your app is listening on port ' + listener.address().port);
 });
